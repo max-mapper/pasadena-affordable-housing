@@ -86,21 +86,22 @@
 
 <body>
   <div class="buttons">
-    <button class="button" value="TheoreticalStaff">Staff Proposal</button>
-    <button class="button" value="Theoretical MHCH">MHCH Proposal</button>
+    <button class="button" value="Actual Yield Staff">Staff Proposal</button>
+    <button class="button" value="Actual Yield MHCH">MHCH Proposal</button>
     <p class="stats">
       <ul>
         <li>Staff Total Yield: <span class="stafftotal"></span></li>
         <li>MHCH Total Yield: <span class="mhchtotal"></span></li>
       </ul>
+      <span>(Specific Plan zones currently assumed to be 32 dwelling units/acre in this model)</span>
     </p>
   </div>
   <div id='map'></div>
   <script>
 
     var stops = [[1, '#e5f5e0'],
-                [25, '#a1d99b'],
-                [200, '#31a354']]
+                [32, '#a1d99b'],
+                [250, '#31a354']]
     var transformRequest = (url, resourceType) => {
       var isMapboxRequest =
         url.slice(8, 22) === "api.mapbox.com" ||
@@ -141,11 +142,11 @@
             var mhchTotal = 0
             data.features = data.features.map((el) => {
               el.geometry = JSON.parse(el.properties.GEOMETRY)
-              el.properties['TheoreticalStaff'] = +el.properties['TheoreticalStaff']
-              el.properties['Theoretical MHCH'] = +el.properties['Theoretical MHCH']
+              el.properties['Actual Yield Staff'] = +el.properties['Actual Yield Staff']
+              el.properties['Actual Yield MHCH'] = +el.properties['Actual Yield MHCH']
               delete el.properties.GEOMETRY
-              staffTotal += el.properties['TheoreticalStaff']
-              mhchTotal += el.properties['Theoretical MHCH']
+              staffTotal += el.properties['Actual Yield Staff']
+              mhchTotal += el.properties['Actual Yield MHCH']
               return el
             })
             document.querySelector('.stafftotal').innerText = staffTotal
@@ -166,7 +167,7 @@
             },
             'paint': {
               'fill-color': {
-                'property': 'Theoretical MHCH',
+                'property': 'Actual Yield MHCH',
                 'stops': stops
               },
               'fill-outline-color': 'white',
@@ -195,7 +196,7 @@
           }
 
           map.on('mousemove', function(e) {
-            identifyFeatures(e, 'parcelsLayer', ["Address", "Congregation", "TheoreticalStaff", "Theoretical MHCH"])
+            identifyFeatures(e, 'parcelsLayer', ["Address", "Congregation", "Existing Zoning", "AdjacentZones", "Actual Yield Staff", "Actual Yield MHCH"])
           });
 
             // // When a click event occurs on a feature in the csvData layer, open a popup at the
