@@ -72,14 +72,35 @@
     .mapboxgl-popup-anchor-top>.mapboxgl-popup-tip {
       border-bottom-color: rgb(61, 59, 59);
     }
+
+    .buttons {
+      background: white;
+      border: 10px solid white;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 100;
+    }
   </style>
 </head>
 
 <body>
-
+  <div class="buttons">
+    <button class="button" value="TheoreticalStaff">Staff Proposal</button>
+    <button class="button" value="Theoretical MHCH">MHCH Proposal</button>
+    <p class="stats">
+      <ul>
+        <li>Staff Total Yield: <span class="stafftotal"></span></li>
+        <li>MHCH Total Yield: <span class="mhchtotal"></span></li>
+      </ul>
+    </p>
+  </div>
   <div id='map'></div>
   <script>
 
+    var stops = [[1, '#e5f5e0'],
+                [25, '#a1d99b'],
+                [200, '#31a354']]
     var transformRequest = (url, resourceType) => {
       var isMapboxRequest =
         url.slice(8, 22) === "api.mapbox.com" ||
@@ -116,12 +137,19 @@
         csv2geojson.csv2geojson(csvData, {
           delimiter: ','
         }, function (err, data) {
+            var staffTotal = 0
+            var mhchTotal = 0
             data.features = data.features.map((el) => {
               el.geometry = JSON.parse(el.properties.GEOMETRY)
-              el.properties['Current Yield'] = +el.properties['Current Yield']
+              el.properties['TheoreticalStaff'] = +el.properties['TheoreticalStaff']
+              el.properties['Theoretical MHCH'] = +el.properties['Theoretical MHCH']
               delete el.properties.GEOMETRY
+              staffTotal += el.properties['TheoreticalStaff']
+              mhchTotal += el.properties['Theoretical MHCH']
               return el
             })
+            document.querySelector('.stafftotal').innerText = staffTotal
+            document.querySelector('.mhchtotal').innerText = mhchTotal
             console.log(data)
           map.on('load', function () {
             //Add the the layer to the map
@@ -138,12 +166,8 @@
             },
             'paint': {
               'fill-color': {
-                'property': 'Current Yield',
-                'stops': [
-                  [1, 'white'],
-                  [25, 'orange'],
-                  [400, 'firebrick']
-                ]
+                'property': 'Theoretical MHCH',
+                'stops': stops
               },
               'fill-outline-color': 'white',
               'fill-opacity': 0.9
@@ -171,7 +195,7 @@
           }
 
           map.on('mousemove', function(e) {
-            identifyFeatures(e, 'parcelsLayer', ["Address", "Congregation", "Current Yield"])
+            identifyFeatures(e, 'parcelsLayer', ["Address", "Congregation", "TheoreticalStaff", "Theoretical MHCH"])
           });
 
             // // When a click event occurs on a feature in the csvData layer, open a popup at the
@@ -221,6 +245,14 @@
       };
     });
 
+    document.addEventListener('click', (e) => {
+      if (e.target.className && e.target.className === 'button') {
+        map.setPaintProperty('parcelsLayer', 'fill-color', {
+          'property': e.target.value,
+          'stops': stops
+        });
+      }
+    })
 
 
 
