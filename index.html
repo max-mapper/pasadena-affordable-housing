@@ -88,9 +88,9 @@
   <div class="buttons">
     <span>Choose a filter:</span><br><br>
     <button class="button" value="staff">Staff Proposal > 50 units</button><br>
-    <button class="button" value="mhch">MHCH Proposal > 50 units</button><br>
+    <button class="button" value="mhch">MHCH Proposal (Tax Credit Eligible)</button><br>
     <button class="button" value="applies">Properties where amendment applies</button><br>
-    <button class="button" value="all">All congregation properties</button><br><br>
+    <!-- <button class="button" value="all">All congregation properties</button><br><br> -->
     <span class="count"></span>
   </div>
   <div id='map'></div>
@@ -172,7 +172,7 @@
             mhchData = {
               type: 'FeatureCollection',
               features: data.features.filter((f) => {
-                if (f.properties['Actual Yield MHCH'] >= 50) return true
+                if (f.properties['MHCH TC Elig'] === 'Y') return true
               })
             }
 
@@ -264,7 +264,7 @@
             });
 
             function identifyFeatures(location, fields) {
-              var identifiedFeatures = map.queryRenderedFeatures(location.point, {layers: [currentLayer]});
+              var identifiedFeatures = map.queryRenderedFeatures(location.point, {layers: ['allLayer']});
               popup.remove();
               if (identifiedFeatures != '') {
                 var popupText = "";
@@ -329,7 +329,7 @@
     });
     
     function hideAll() {
-      map.setLayoutProperty('allLayer', 'visibility', 'none');
+      // map.setLayoutProperty('allLayer', 'visibility', 'none');
       map.setLayoutProperty('appliesLayer', 'visibility', 'none');
       map.setLayoutProperty('staffLayer', 'visibility', 'none');
       map.setLayoutProperty('mhchLayer', 'visibility', 'none');
