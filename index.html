@@ -95,6 +95,7 @@
   </div>
   <div id='map'></div>
   <script>
+    var currentLayer = 'allLayer'
     var countSpan = document.querySelector('.count')
     var counts
     var stops = [[1, '#e5f5e0'],
@@ -134,7 +135,6 @@
       var appliesData
       var staffData
       var mhchData
-      var currentLayer = 'allLayer'
 
       function makeGeoJSON(csvData) {
         csv2geojson.csv2geojson(csvData, {
@@ -340,6 +340,7 @@
         hideAll()
         var val = e.target.value
         currentLayer = val + 'Layer'
+        console.log(currentLayer)
         map.setLayoutProperty(val + 'Layer', 'visibility', 'visible');
         countSpan.innerText = counts[val] + ' parcels shown'
       }
