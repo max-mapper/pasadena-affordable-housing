@@ -86,19 +86,17 @@
 
 <body>
   <div class="buttons">
-    <button class="button" value="Actual Yield Staff">Staff Proposal</button>
-    <button class="button" value="Actual Yield MHCH">MHCH Proposal</button>
-    <p class="stats">
-      <ul>
-        <li>Staff Total Yield: <span class="stafftotal"></span></li>
-        <li>MHCH Total Yield: <span class="mhchtotal"></span></li>
-      </ul>
-      <span>(Specific Plan zones currently assumed to be 32 dwelling units/acre in this model)</span>
-    </p>
+    <span>Choose a filter:</span><br><br>
+    <button class="button" value="staff">Staff Proposal > 50 units</button><br>
+    <button class="button" value="mhch">MHCH Proposal > 50 units</button><br>
+    <button class="button" value="applies">Properties where amendment applies</button><br>
+    <button class="button" value="all">All congregation properties</button><br><br>
+    <span class="count"></span>
   </div>
   <div id='map'></div>
   <script>
-
+    var countSpan = document.querySelector('.count')
+    var counts
     var stops = [[1, '#e5f5e0'],
                 [32, '#a1d99b'],
                 [250, '#31a354']]
@@ -132,72 +130,156 @@
         success: function (csvData) { makeGeoJSON(csvData); }
       });
 
-
+      var allData
+      var appliesData
+      var staffData
+      var mhchData
+      var currentLayer = 'allLayer'
 
       function makeGeoJSON(csvData) {
         csv2geojson.csv2geojson(csvData, {
           delimiter: ','
         }, function (err, data) {
-            var staffTotal = 0
-            var mhchTotal = 0
             data.features = data.features.map((el) => {
               el.geometry = JSON.parse(el.properties.GEOMETRY)
               el.properties['Actual Yield Staff'] = +el.properties['Actual Yield Staff']
               el.properties['Actual Yield MHCH'] = +el.properties['Actual Yield MHCH']
               delete el.properties.GEOMETRY
-              staffTotal += el.properties['Actual Yield Staff']
-              mhchTotal += el.properties['Actual Yield MHCH']
               return el
             })
-            document.querySelector('.stafftotal').innerText = staffTotal
-            document.querySelector('.mhchtotal').innerText = mhchTotal
-            console.log(data)
+
+            allData = {
+              type: 'FeatureCollection',
+              features: data.features
+            }
+
+            appliesData = {
+              type: 'FeatureCollection',
+              features: data.features.filter((f) => {
+                if (f.properties['Applies?'] === 'Y') return true
+              })
+            }
+
+
+            staffData = {
+              type: 'FeatureCollection',
+              features: data.features.filter((f) => {
+                if (f.properties['Actual Yield Staff'] >= 50) return true
+              })
+            }
+
+
+            mhchData = {
+              type: 'FeatureCollection',
+              features: data.features.filter((f) => {
+                if (f.properties['Actual Yield MHCH'] >= 50) return true
+              })
+            }
+
+            counts = {
+              all: allData.features.length,
+              applies: appliesData.features.length,
+              staff: staffData.features.length,
+              mhch: mhchData.features.length
+            }
+
           map.on('load', function () {
-            //Add the the layer to the map
-            map.addSource('parcels', {
+            map.addSource('all', {
               'type': 'geojson',
-              data
+              data: allData
+            });
+            map.addSource('applies', {
+              'type': 'geojson',
+              data: appliesData
+            });
+            map.addSource('staff', {
+              'type': 'geojson',
+              data: staffData
+            });
+            map.addSource('mhch', {
+              'type': 'geojson',
+              data: mhchData
             });
             map.addLayer({
-            'id': 'parcelsLayer',
-            'type': 'fill',
-            'source': 'parcels',
-            'layout': {
-              'visibility': 'visible'
-            },
-            'paint': {
-              'fill-color': {
-                'property': 'Actual Yield MHCH',
-                'stops': stops
+              'id': 'allLayer',
+              'type': 'fill',
+              'source': 'all',
+              'layout': {
+                'visibility': 'visible'
               },
-              'fill-outline-color': 'white',
-              'fill-opacity': 0.9
+              'paint': {
+                'fill-color': 'white',
+                'fill-outline-color': 'white',
+                'fill-opacity': 0.9
+              }
+            });
+
+            map.addLayer({
+              'id': 'appliesLayer',
+              'type': 'fill',
+              'source': 'applies',
+              'layout': {
+                'visibility': 'none'
+              },
+              'paint': {
+                'fill-color': 'green',
+                'fill-outline-color': 'white',
+                'fill-opacity': 0.9
+              }
+            });
+
+            map.addLayer({
+              'id': 'staffLayer',
+              'type': 'fill',
+              'source': 'staff',
+              'layout': {
+                'visibility': 'none'
+              },
+              'paint': {
+                'fill-color': 'blue',
+                'fill-outline-color': 'white',
+                'fill-opacity': 0.9
+              }
+            });
+
+            map.addLayer({
+              'id': 'mhchLayer',
+              'type': 'fill',
+              'source': 'mhch',
+              'layout': {
+                'visibility': 'none'
+              },
+              'paint': {
+                'fill-color': 'orange',
+                'fill-outline-color': 'white',
+                'fill-opacity': 0.9
+              }
+            });
+
+            countSpan.innerText = counts['all'] + ' parcels shown'
+
+            var popup = new mapboxgl.Popup({
+              closeButton: false,
+              closeOnClick: false
+            });
+
+            function identifyFeatures(location, fields) {
+              var identifiedFeatures = map.queryRenderedFeatures(location.point, {layers: [currentLayer]});
+              popup.remove();
+              if (identifiedFeatures != '') {
+                var popupText = "";
+                for (i = 0; i < fields.length; i++) {
+                  popupText += "<strong>" + fields[i] + ":</strong> " + identifiedFeatures[0].properties[fields[i]] + "<" + "br" + ">"
+                };
+                popup.setLngLat(location.lngLat)
+                  .setHTML(popupText)
+                  .addTo(map);
+              }
             }
-          });
 
-          var popup = new mapboxgl.Popup({
-            closeButton: false,
-            closeOnClick: false
-          });
-
-          function identifyFeatures(location, layer, fields) {
-            var identifiedFeatures = map.queryRenderedFeatures(location.point, {layers: [layer]});
-            /*console.log(identifiedFeatures);*/
-            popup.remove();
-            if (identifiedFeatures != '') {
-              var popupText = "";
-              for (i = 0; i < fields.length; i++) {
-                popupText += "<strong>" + fields[i] + ":</strong> " + identifiedFeatures[0].properties[fields[i]] + "<" + "br" + ">"
-              };
-              popup.setLngLat(location.lngLat)
-                .setHTML(popupText)
-                .addTo(map);
-            }
-          }
-
-          map.on('mousemove', function(e) {
-            identifyFeatures(e, 'parcelsLayer', ["Address", "Congregation", "Existing Zoning", "AdjacentZones", "Actual Yield Staff", "Actual Yield MHCH"])
-          });
+            map.on('mousemove', function(e) {
+              identifyFeatures(e, ["Address", "Congregation", "Existing Zoning", "AdjacentZones", "Actual Yield Staff", "Actual Yield MHCH"])
+            });
 
             // // When a click event occurs on a feature in the csvData layer, open a popup at the
             // // location of the feature, with description HTML from its properties.
@@ -245,18 +327,23 @@
         });
       };
     });
+    
+    function hideAll() {
+      map.setLayoutProperty('allLayer', 'visibility', 'none');
+      map.setLayoutProperty('appliesLayer', 'visibility', 'none');
+      map.setLayoutProperty('staffLayer', 'visibility', 'none');
+      map.setLayoutProperty('mhchLayer', 'visibility', 'none');
+    }
 
     document.addEventListener('click', (e) => {
       if (e.target.className && e.target.className === 'button') {
-        map.setPaintProperty('parcelsLayer', 'fill-color', {
-          'property': e.target.value,
-          'stops': stops
-        });
+        hideAll()
+        var val = e.target.value
+        currentLayer = val + 'Layer'
+        map.setLayoutProperty(val + 'Layer', 'visibility', 'visible');
+        countSpan.innerText = counts[val] + ' parcels shown'
       }
     })
-
-
-
   </script>
 
 </body>
