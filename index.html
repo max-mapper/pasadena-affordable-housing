@@ -87,6 +87,7 @@
 <body>
   <div class="buttons">
     <span>Choose a filter:</span><br><br>
+    <button class="button" value="current">Existing Code > 50 units</button><br>
     <button class="button" value="staff">Staff Proposal > 50 units</button><br>
     <button class="button" value="mhch">MHCH Proposal (Tax Credit Eligible)</button><br>
     <button class="button" value="applies">Properties where amendment applies</button><br>
@@ -144,6 +145,7 @@
               el.geometry = JSON.parse(el.properties.GEOMETRY)
               el.properties['Actual Yield Staff'] = +el.properties['Actual Yield Staff']
               el.properties['Actual Yield MHCH'] = +el.properties['Actual Yield MHCH']
+              el.properties['Current Yield'] = +el.properties['Current Yield']
               delete el.properties.GEOMETRY
               return el
             })
@@ -153,6 +155,12 @@
               features: data.features
             }
 
+            currentData = {
+              type: 'FeatureCollection',
+              features: data.features.filter((f) => {
+                if (f.properties['Current Yield'] > 50) return true
+              })
+            }
             appliesData = {
               type: 'FeatureCollection',
               features: data.features.filter((f) => {
@@ -180,7 +188,8 @@
               all: allData.features.length,
               applies: appliesData.features.length,
               staff: staffData.features.length,
-              mhch: mhchData.features.length
+              mhch: mhchData.features.length,
+              current: currentData.features.length
             }
 
           map.on('load', function () {
@@ -197,6 +206,10 @@
               data: staffData
             });
             map.addSource('mhch', {
+              'type': 'geojson',
+              data: mhchData
+            });
+            map.addSource('current', {
               'type': 'geojson',
               data: mhchData
             });
@@ -251,6 +264,21 @@
               },
               'paint': {
                 'fill-color': 'orange',
+                'fill-outline-color': 'white',
+                'fill-opacity': 0.9
+              }
+            });
+
+
+            map.addLayer({
+              'id': 'currentLayer',
+              'type': 'fill',
+              'source': 'current',
+              'layout': {
+                'visibility': 'none'
+              },
+              'paint': {
+                'fill-color': 'yellow',
                 'fill-outline-color': 'white',
                 'fill-opacity': 0.9
               }
@@ -330,6 +358,7 @@
     
     function hideAll() {
       // map.setLayoutProperty('allLayer', 'visibility', 'none');
+      map.setLayoutProperty('currentLayer', 'visibility', 'none');
       map.setLayoutProperty('appliesLayer', 'visibility', 'none');
       map.setLayoutProperty('staffLayer', 'visibility', 'none');
       map.setLayoutProperty('mhchLayer', 'visibility', 'none');
